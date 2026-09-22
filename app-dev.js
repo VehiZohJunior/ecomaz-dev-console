@@ -287,9 +287,57 @@ async function handleSupprimerEcole(ecoleId, nomEcole){
 }
 
 /* ---------------------------------------------------------------------
+   SURVEILLANCE TECHNIQUE — journalise automatiquement les erreurs
+   JavaScript non gérées dans "erreurs_client" (même mécanisme que le
+   site client), pour être informé d'un bug dans la console elle-même.
+   --------------------------------------------------------------------- */
+let __nbErreursJournalisees = 0;
+async function journaliserErreurClient(message, pile){
+  if(__nbErreursJournalisees >= 20) return;
+  __nbErreursJournalisees++;
+  try{
+    await sb.from('erreurs_client').insert({
+      ecole_id: null, role: session?.role || 'developpeur',
+      message: String(message || '').slice(0, 2000),
+      pile: String(pile || '').slice(0, 4000),
+      page: window.location.href, user_agent: navigator.userAgent,
+    });
+  }catch(_e){ /* best-effort */ }
+}
+window.addEventListener('error', (ev) => { journaliserErreurClient(ev.message, ev.error?.stack); });
+window.addEventListener('unhandledrejection', (ev) => { journaliserErreurClient('Promise rejetée : ' + (ev.reason?.message || ev.reason), ev.reason?.stack); });
+
+/* ---------------------------------------------------------------------
+   INSTALLATION DE L'APPLICATION (PWA)
+   --------------------------------------------------------------------- */
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = $('#btnInstallApp');
+  if(btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = $('#btnInstallApp');
+  if(btn) btn.style.display = 'none';
+});
+
+/* ---------------------------------------------------------------------
    INITIALISATION
    --------------------------------------------------------------------- */
 (async function init(){
+  const btnInstall = $('#btnInstallApp');
+  if(btnInstall) btnInstall.addEventListener('click', async () => {
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btnInstall.style.display = 'none';
+  });
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
   const profil = await chargerProfilCourant();
   if(profil && session.role === 'developpeur'){
     entrerConsole();

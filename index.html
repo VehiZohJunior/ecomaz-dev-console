@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EcoMaZ — Console Développeur</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#363c4f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EcoMaZ Dev">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,6 +23,7 @@
       <h1 style="margin:0;">🛠️ Console Développeur — EcoMaZ</h1>
       <div class="topbar-right">
         <span class="pill" id="devNomComplet"></span>
+        <button class="btn-install" id="btnInstallApp" style="display:none;">📲 Installer</button>
         <button class="btn-reset" id="btnLogout">🔒 Déconnexion</button>
       </div>
     </header>
@@ -37,6 +44,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script src="supabase-client.js"></script>
 <script src="app-dev.js"></script>
 </body>
