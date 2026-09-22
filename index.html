@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoMaZ — Console Développeur</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-gate open" id="loginGate"></div>
+
+<div class="app" id="appRoot" style="display:none;">
+  <main class="main">
+    <header class="topbar">
+      <h1 style="margin:0;">🛠️ Console Développeur — EcoMaZ</h1>
+      <div class="topbar-right">
+        <span class="pill" id="devNomComplet"></span>
+        <button class="btn-reset" id="btnLogout">🔒 Déconnexion</button>
+      </div>
+    </header>
+    <div class="view-container" id="viewContainer"></div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Titre</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="app-dev.js"></script>
+</body>
+</html>
