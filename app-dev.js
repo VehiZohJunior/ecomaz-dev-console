@@ -87,13 +87,39 @@ function entrerConsole(){
   $('#appRoot').style.display = '';
   $('#devNomComplet').textContent = session.nomComplet || '';
   renderConsole();
+  startIdleWatcher();
 }
 
 async function deconnecter(){
+  stopIdleWatcher();
   await deconnexion();
   showLoginGate();
 }
 $('#btnLogout').addEventListener('click', deconnecter);
+
+/* ---------------------------------------------------------------------
+   AUTO-VERROUILLAGE PAR INACTIVITÉ — même mécanisme que le site client
+   (10 min). Particulièrement important ici : cette console peut créer,
+   suspendre et supprimer des écoles clientes, et configurer des
+   identifiants de paiement Mobile Money.
+   --------------------------------------------------------------------- */
+const IDLE_TIMEOUT_MS = 10*60*1000;
+let idleTimer = null;
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(()=>{
+    toast('Session verrouillée pour inactivité');
+    deconnecter();
+  }, IDLE_TIMEOUT_MS);
+}
+function startIdleWatcher(){
+  ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdleTimer));
+  resetIdleTimer();
+}
+function stopIdleWatcher(){
+  clearTimeout(idleTimer);
+  ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(ev=>document.removeEventListener(ev, resetIdleTimer));
+}
 
 /* ---------------------------------------------------------------------
    CONSOLE — liste des écoles clientes, création, activation/suspension
@@ -119,6 +145,7 @@ async function renderConsole(){
       <td>${e.accesSupportDeveloppeur ? `<span class="badge blue">🔓 Accès accordé</span>` : `<span class="hint">Aucun accès</span>`}</td>
       <td style="white-space:nowrap;">
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
+        <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
         <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
         <button class="btn danger sm" onclick="confirmerSupprimerEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🗑️ Supprimer</button>
       </td>
@@ -186,6 +213,88 @@ async function inspecterEcole(ecoleId, nomEcole){
   }catch(e){
     openModal('Erreur', `<div class="pin-error" style="display:block;">Impossible de charger : ${escapeHtml(e.message)}</div>`);
   }
+}
+
+/* ---------------------------------------------------------------------
+   PAIEMENT EN LIGNE MOBILE MONEY — configuration par école, réservée à
+   ce compte développeur (jugée trop technique pour Direction/Fondation,
+   décision du 2026-09-24). Les identifiants transitent uniquement via la
+   fonction serveur configurer-paiement-en-ligne, jamais réaffichés une
+   fois enregistrés — seul un indicateur "déjà configuré" est renvoyé.
+   --------------------------------------------------------------------- */
+const CHAMPS_IDENTIFIANTS_PRESTATAIRE = {
+  cinetpay: [{cle:'apiKey', label:'API Key'}, {cle:'siteId', label:'Site ID'}],
+  paydunya: [{cle:'masterKey', label:'Master Key'}, {cle:'privateKey', label:'Private Key'}, {cle:'token', label:'Token'}],
+};
+
+async function ouvrirConfigPaiementEnLigne(ecoleId, nomEcole){
+  openModal(`💳 Paiement en ligne — ${nomEcole}`, `<div class="hint">Chargement…</div>`);
+  try{
+    const { data, error } = await sb.functions.invoke('configurer-paiement-en-ligne', { body: { ecoleId } });
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.error || 'Échec du chargement');
+    renderFormPaiementEnLigne(ecoleId, nomEcole, data);
+  }catch(e){
+    openModal('Erreur', `<div class="pin-error" style="display:block;">Impossible de charger : ${escapeHtml(e.message)}</div>`);
+  }
+}
+
+function renderFormPaiementEnLigne(ecoleId, nomEcole, etat){
+  const champsIdent = CHAMPS_IDENTIFIANTS_PRESTATAIRE[etat.prestataire] || [];
+  openModal(`💳 Paiement en ligne — ${nomEcole}`, `
+    <div class="hint" style="margin-bottom:12px;">Les identifiants ne sont jamais réaffichés une fois enregistrés — seul un statut "déjà configuré" est indiqué.</div>
+    <form onsubmit="return handleSavePaiementEnLigneDev(event, '${ecoleId}', '${nomEcole.replace(/'/g,"\\'")}')">
+      <div class="form-grid">
+        <div class="field"><label>Activer ?</label>
+          <select name="actif">
+            <option value="non" ${!etat.actif?'selected':''}>Non</option>
+            <option value="oui" ${etat.actif?'selected':''}>Oui</option>
+          </select>
+        </div>
+        <div class="field"><label>Prestataire</label>
+          <select name="prestataire" id="selectPrestataireDev" onchange="rafraichirChampsIdentifiantsDev(this.value)">
+            <option value="" ${!etat.prestataire?'selected':''}>— Choisir —</option>
+            <option value="cinetpay" ${etat.prestataire==='cinetpay'?'selected':''}>CinetPay</option>
+            <option value="paydunya" ${etat.prestataire==='paydunya'?'selected':''}>PayDunya</option>
+          </select>
+        </div>
+        <div id="champsIdentDev" class="field span2">
+          <div class="form-grid">
+            ${champsIdent.map(f=>`<div class="field"><label>${f.label}</label><input type="text" name="ident_${f.cle}" placeholder="${etat.champsConfigures?.[f.cle] ? 'déjà enregistré — laisser vide pour ne pas changer' : 'Coller la valeur'}" autocomplete="off" spellcheck="false"></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn secondary" onclick="closeModal()">Fermer</button>
+        <button type="submit" class="btn">Enregistrer</button>
+      </div>
+    </form>`);
+}
+
+function rafraichirChampsIdentifiantsDev(prestataire){
+  const champs = CHAMPS_IDENTIFIANTS_PRESTATAIRE[prestataire] || [];
+  document.getElementById('champsIdentDev').innerHTML = `
+    <div class="form-grid">
+      ${champs.map(f=>`<div class="field"><label>${f.label}</label><input type="text" name="ident_${f.cle}" placeholder="Coller la valeur" autocomplete="off" spellcheck="false"></div>`).join('')}
+    </div>`;
+}
+
+async function handleSavePaiementEnLigneDev(ev, ecoleId, nomEcole){
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const actif = fd.get('actif')==='oui';
+  const prestataire = fd.get('prestataire') || '';
+  const champs = CHAMPS_IDENTIFIANTS_PRESTATAIRE[prestataire] || [];
+  const identifiants = {};
+  champs.forEach(f=>{ const v = (fd.get(`ident_${f.cle}`)||'').trim(); if(v) identifiants[f.cle] = v; });
+  try{
+    const { data, error } = await sb.functions.invoke('configurer-paiement-en-ligne', { body: { ecoleId, actif, prestataire, identifiants } });
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.error || 'Échec de l\'enregistrement');
+    toast('Paiement en ligne mis à jour pour ' + nomEcole);
+    renderFormPaiementEnLigne(ecoleId, nomEcole, data);
+  }catch(e){ alert('Erreur : ' + e.message); }
+  return false;
 }
 
 function openCreerEcoleForm(){
