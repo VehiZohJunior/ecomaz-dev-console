@@ -146,7 +146,7 @@ async function renderConsole(){
       <td style="white-space:nowrap;">
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
         <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
-        <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
+        <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
         <button class="btn danger sm" onclick="confirmerSupprimerEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🗑️ Supprimer</button>
       </td>
     </tr>`).join('');
@@ -156,7 +156,10 @@ async function renderConsole(){
     <div class="panel">
       <div class="panel-head">
         <div><h2>🏫 Écoles clientes</h2><div class="sub">${devEcoles.length} école(s)</div></div>
-        <button class="btn" onclick="openCreerEcoleForm()">+ Nouvelle école cliente</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn secondary" onclick="voirJournalConsoleDev()">📜 Journal d'audit</button>
+          <button class="btn" onclick="openCreerEcoleForm()">+ Nouvelle école cliente</button>
+        </div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>École</th><th>Adresse</th><th>Téléphone</th><th>Statut</th><th>Accès support</th><th>Actions</th></tr></thead>
@@ -208,6 +211,39 @@ async function inspecterEcole(ecoleId, nomEcole){
       <div style="max-height:220px;overflow:auto;">
         <div class="hint" style="margin-bottom:6px;"><strong>Enseignants</strong></div>
         <table><thead><tr><th>Nom</th></tr></thead><tbody>${lignesEns || '<tr><td class="hint">Aucun</td></tr>'}</tbody></table>
+      </div>
+      <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
+  }catch(e){
+    openModal('Erreur', `<div class="pin-error" style="display:block;">Impossible de charger : ${escapeHtml(e.message)}</div>`);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   JOURNAL D'AUDIT — trace chaque action du développeur (création,
+   suspension, réactivation, suppression d'école, configuration du
+   paiement en ligne). Immuable côté base (voir schema.sql section 30).
+   --------------------------------------------------------------------- */
+const LABELS_ACTION_JOURNAL_DEV = {
+  creation_ecole: '🆕 Création école', suppression_ecole: '🗑️ Suppression école',
+  suspension_ecole: '⏸️ Suspension école', reactivation_ecole: '▶️ Réactivation école',
+  configuration_paiement_en_ligne: '💳 Config. paiement en ligne',
+};
+async function voirJournalConsoleDev(){
+  openModal("📜 Journal d'audit", `<div class="hint">Chargement…</div>`);
+  try{
+    const { data, error } = await sb.from('journal_console_dev').select('*').order('created_at', {ascending:false}).limit(200);
+    if(error) throw error;
+    const lignes = (data||[]).map(j=>`<tr>
+      <td>${new Date(j.created_at).toLocaleString('fr-FR')}</td>
+      <td>${escapeHtml(LABELS_ACTION_JOURNAL_DEV[j.action] || j.action)}</td>
+      <td>${escapeHtml(j.ecole_nom || '—')}</td>
+      <td>${escapeHtml(j.auteur_nom || '—')}</td>
+    </tr>`).join('');
+    openModal("📜 Journal d'audit", `
+      <div class="hint" style="margin-bottom:12px;">Historique en lecture seule, immuable — ${(data||[]).length} entrée(s) les plus récentes.</div>
+      <div style="max-height:420px;overflow:auto;">
+        <table><thead><tr><th>Date</th><th>Action</th><th>École</th><th>Par</th></tr></thead>
+        <tbody>${lignes || `<tr><td colspan="4" class="hint">Aucune action journalisée pour l'instant.</td></tr>`}</tbody></table>
       </div>
       <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
   }catch(e){
@@ -348,10 +384,19 @@ async function handleCreerEcole(ev){
   return false;
 }
 
-async function toggleActifEcole(ecoleId, nouveauStatut){
+async function toggleActifEcole(ecoleId, nomEcole, nouveauStatut){
+  const message = nouveauStatut
+    ? `Réactiver « ${nomEcole} » ? Le personnel pourra de nouveau se connecter.`
+    : `Suspendre « ${nomEcole} » ? Tout le personnel sera immédiatement bloqué à la connexion, sans toucher à leurs données.`;
+  if(!confirm(message)) return;
   try{
     const { error } = await sb.from('ecoles').update({ actif: nouveauStatut }).eq('id', ecoleId);
     if(error) throw error;
+    await sb.from('journal_console_dev').insert({
+      action: nouveauStatut ? 'reactivation_ecole' : 'suspension_ecole',
+      ecole_id: ecoleId, ecole_nom: nomEcole,
+      auteur_id: session.userId, auteur_nom: session.nomComplet || '',
+    });
     toast(nouveauStatut ? 'École réactivée' : 'École suspendue');
     await renderConsole();
   }catch(e){ alert('Erreur : ' + e.message); }
