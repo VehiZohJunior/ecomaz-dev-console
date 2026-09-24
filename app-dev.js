@@ -125,6 +125,9 @@ function stopIdleWatcher(){
    CONSOLE — liste des écoles clientes, création, activation/suspension
    --------------------------------------------------------------------- */
 let devEcoles = [];
+let filtreEcoles = '';
+let pageEcoles = 1;
+const TAILLE_PAGE_ECOLES = 15;
 
 async function renderConsole(){
   try{
@@ -135,8 +138,33 @@ async function renderConsole(){
     devEcoles = [];
     toast('Erreur de chargement : ' + e.message);
   }
+  pageEcoles = 1;
+  renderVueEcoles();
+}
 
-  const rows = devEcoles.map(e=>`
+function filtrerEcoles(valeur){
+  filtreEcoles = valeur;
+  pageEcoles = 1;
+  renderVueEcoles();
+  const input = document.getElementById('rechercheEcoles');
+  if(input){ input.focus(); const pos = input.value.length; input.setSelectionRange(pos, pos); }
+}
+function changerPageEcoles(page){
+  pageEcoles = page;
+  renderVueEcoles();
+}
+
+function renderVueEcoles(){
+  const terme = filtreEcoles.trim().toLowerCase();
+  const filtrees = terme
+    ? devEcoles.filter(e => [e.nomEcole, e.adresse, e.telephone].some(v => (v||'').toLowerCase().includes(terme)))
+    : devEcoles;
+  const totalPages = Math.max(1, Math.ceil(filtrees.length / TAILLE_PAGE_ECOLES));
+  if(pageEcoles > totalPages) pageEcoles = totalPages;
+  const debut = (pageEcoles-1) * TAILLE_PAGE_ECOLES;
+  const pageActuelle = filtrees.slice(debut, debut + TAILLE_PAGE_ECOLES);
+
+  const rows = pageActuelle.map(e=>`
     <tr>
       <td>${escapeHtml(e.nomEcole)}</td>
       <td>${escapeHtml(e.adresse||'—')}</td>
@@ -144,6 +172,7 @@ async function renderConsole(){
       <td><span class="badge ${e.actif!==false?'green':'red'}">${e.actif!==false?'Active':'Suspendue'}</span></td>
       <td>${e.accesSupportDeveloppeur ? `<span class="badge blue">🔓 Accès accordé</span>` : `<span class="hint">Aucun accès</span>`}</td>
       <td style="white-space:nowrap;">
+        <button class="btn secondary sm" onclick="ouvrirModifierEcoleForm('${e.id}')">✏️ Modifier</button>
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
         <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
         <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
@@ -151,20 +180,31 @@ async function renderConsole(){
       </td>
     </tr>`).join('');
 
+  const pagination = totalPages>1 ? `
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px;">
+      <button class="btn secondary sm" ${pageEcoles<=1?'disabled':''} onclick="changerPageEcoles(${pageEcoles-1})">◀ Précédent</button>
+      <span class="hint">Page ${pageEcoles} / ${totalPages}</span>
+      <button class="btn secondary sm" ${pageEcoles>=totalPages?'disabled':''} onclick="changerPageEcoles(${pageEcoles+1})">Suivant ▶</button>
+    </div>` : '';
+
   $('#viewContainer').innerHTML = `
   <div class="view active">
     <div class="panel">
       <div class="panel-head">
-        <div><h2>🏫 Écoles clientes</h2><div class="sub">${devEcoles.length} école(s)</div></div>
+        <div><h2>🏫 Écoles clientes</h2><div class="sub">${filtrees.length} école(s)${terme ? ` sur ${devEcoles.length} au total` : ''}</div></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn secondary" onclick="voirJournalConsoleDev()">📜 Journal d'audit</button>
           <button class="btn" onclick="openCreerEcoleForm()">+ Nouvelle école cliente</button>
         </div>
       </div>
+      <div class="filters" style="margin-bottom:14px;">
+        <input type="text" id="rechercheEcoles" placeholder="🔍 Rechercher (nom, adresse, téléphone)…" value="${escapeHtml(filtreEcoles)}" oninput="filtrerEcoles(this.value)" style="width:100%;max-width:420px;">
+      </div>
       <div class="table-wrap"><table>
         <thead><tr><th>École</th><th>Adresse</th><th>Téléphone</th><th>Statut</th><th>Accès support</th><th>Actions</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="6" class="hint">Aucune école pour le moment.</td></tr>'}</tbody>
+        <tbody>${rows || `<tr><td colspan="6" class="hint">${terme ? 'Aucune école ne correspond à la recherche.' : 'Aucune école pour le moment.'}</td></tr>`}</tbody>
       </table></div>
+      ${pagination}
     </div>
     <div class="panel">
       <div class="panel-head"><div><h2>🔒 Comment c'est sécurisé</h2></div></div>
@@ -226,6 +266,7 @@ async function inspecterEcole(ecoleId, nomEcole){
 const LABELS_ACTION_JOURNAL_DEV = {
   creation_ecole: '🆕 Création école', suppression_ecole: '🗑️ Suppression école',
   suspension_ecole: '⏸️ Suspension école', reactivation_ecole: '▶️ Réactivation école',
+  modification_ecole: '✏️ Modification infos école',
   configuration_paiement_en_ligne: '💳 Config. paiement en ligne',
 };
 async function voirJournalConsoleDev(){
@@ -249,6 +290,51 @@ async function voirJournalConsoleDev(){
   }catch(e){
     openModal('Erreur', `<div class="pin-error" style="display:block;">Impossible de charger : ${escapeHtml(e.message)}</div>`);
   }
+}
+
+/* ---------------------------------------------------------------------
+   MODIFIER LES INFOS D'UNE ÉCOLE — nom, adresse, téléphone (une faute de
+   frappe à la création ne devait plus rester bloquée sans intervention
+   technique directe en base).
+   --------------------------------------------------------------------- */
+function ouvrirModifierEcoleForm(ecoleId){
+  const e = devEcoles.find(x=>x.id===ecoleId);
+  if(!e) return;
+  openModal(`Modifier — ${e.nomEcole}`, `
+    <form onsubmit="return handleModifierEcole(event, '${ecoleId}')">
+      <div class="form-grid">
+        <div class="field span2"><label>Nom de l'école</label><input name="nomEcole" required value="${escapeHtml(e.nomEcole)}"></div>
+        <div class="field span2"><label>Adresse</label><input name="adresse" value="${escapeHtml(e.adresse||'')}"></div>
+        <div class="field"><label>Téléphone</label><input name="telephone" value="${escapeHtml(e.telephone||'')}"></div>
+      </div>
+      <div class="pin-error" id="modifierEcoleError"></div>
+      <div class="form-actions">
+        <button type="button" class="btn secondary" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn">Enregistrer</button>
+      </div>
+    </form>`);
+}
+async function handleModifierEcole(ev, ecoleId){
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const avant = devEcoles.find(x=>x.id===ecoleId);
+  const patch = { nom_ecole: fd.get('nomEcole').trim(), adresse: fd.get('adresse').trim(), telephone: fd.get('telephone').trim() };
+  try{
+    const { error } = await sb.from('ecoles').update(patch).eq('id', ecoleId);
+    if(error) throw error;
+    await sb.from('journal_console_dev').insert({
+      action: 'modification_ecole', ecole_id: ecoleId, ecole_nom: patch.nom_ecole,
+      details: { avant: { nomEcole: avant?.nomEcole, adresse: avant?.adresse, telephone: avant?.telephone }, apres: patch },
+      auteur_id: session.userId, auteur_nom: session.nomComplet || '',
+    });
+    closeModal();
+    toast('École modifiée');
+    await renderConsole();
+  }catch(e){
+    const el = $('#modifierEcoleError');
+    if(el) el.textContent = 'Erreur : ' + e.message;
+  }
+  return false;
 }
 
 /* ---------------------------------------------------------------------
@@ -333,6 +419,15 @@ async function handleSavePaiementEnLigneDev(ev, ecoleId, nomEcole){
   return false;
 }
 
+function genererMotDePasseRobuste(){
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+  const octets = new Uint32Array(14);
+  crypto.getRandomValues(octets);
+  const mdp = Array.from(octets, o => alphabet[o % alphabet.length]).join('');
+  const champ = document.getElementById('champMotDePasseEcole');
+  if(champ){ champ.type = 'text'; champ.value = mdp; }
+}
+
 function openCreerEcoleForm(){
   openModal('Nouvelle école cliente', `
     <form id="formCreerEcole" onsubmit="return handleCreerEcole(event)">
@@ -345,7 +440,14 @@ function openCreerEcoleForm(){
       <div class="form-grid">
         <div class="field span2"><label>Nom du directeur / de la directrice</label><input name="directeurNom" required></div>
         <div class="field span2"><label>Email de connexion</label><input type="email" name="directeurEmail" required></div>
-        <div class="field span2"><label>Mot de passe initial</label><input type="text" name="directeurMotDePasse" required minlength="6" placeholder="Au moins 6 caractères — transmettez-le au directeur de façon sûre"></div>
+        <div class="field span2">
+          <label>Mot de passe initial</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="champMotDePasseEcole" name="directeurMotDePasse" required minlength="8" placeholder="Au moins 8 caractères — ou génère-en un robuste" style="flex:1;">
+            <button type="button" class="btn secondary sm" onclick="genererMotDePasseRobuste()">🎲 Générer</button>
+          </div>
+          <div class="hint" style="margin-top:6px;">Transmets ce mot de passe au directeur de façon sûre (jamais par une voie publique).</div>
+        </div>
       </div>
       <div class="pin-error" id="creerEcoleError"></div>
       <div class="form-actions">
