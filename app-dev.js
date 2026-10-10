@@ -464,7 +464,7 @@ async function handleSavePaiementEnLigneDev(ev, ecoleId, nomEcole){
     if(!data?.ok) throw new Error(data?.error || 'Échec de l\'enregistrement');
     toast('Paiement en ligne mis à jour pour ' + nomEcole);
     renderFormPaiementEnLigne(ecoleId, nomEcole, data);
-  }catch(e){ alert('Erreur : ' + e.message); }
+  }catch(e){ toast('Erreur : ' + e.message); }
   return false;
 }
 
@@ -510,7 +510,7 @@ async function handleCreerEcole(ev){
   ev.preventDefault();
   const fd = new FormData(ev.target);
   const btn = $('#btnCreerEcole');
-  btn.disabled = true; btn.textContent = 'Création…';
+  btn.disabled = true; btn.classList.add('is-loading');
   try{
     const { data, error } = await sb.functions.invoke('creer-ecole-cliente', {
       body: {
@@ -530,16 +530,26 @@ async function handleCreerEcole(ev){
   }catch(e){
     const el = $('#creerEcoleError');
     if(el) el.textContent = 'Erreur : ' + e.message;
-    btn.disabled = false; btn.textContent = "Créer l'école";
+    btn.disabled = false; btn.classList.remove('is-loading');
   }
   return false;
 }
 
-async function toggleActifEcole(ecoleId, nomEcole, nouveauStatut){
+function toggleActifEcole(ecoleId, nomEcole, nouveauStatut){
   const message = nouveauStatut
-    ? `Réactiver « ${nomEcole} » ? Le personnel pourra de nouveau se connecter.`
-    : `Suspendre « ${nomEcole} » ? Le personnel, les parents et le portier seront immédiatement bloqués à la connexion, sans toucher à leurs données.`;
-  if(!confirm(message)) return;
+    ? `Le personnel, les parents et le portier de « ${escapeHtml(nomEcole)} » pourront de nouveau se connecter.`
+    : `Le personnel, les parents et le portier de « ${escapeHtml(nomEcole)} » seront immédiatement bloqués à la connexion, sans toucher à leurs données. Vous pourrez réactiver l'école à tout moment.`;
+  openModal(nouveauStatut ? "Réactiver l'école ?" : "Suspendre l'école ?", `
+    <div class="${nouveauStatut ? 'section-note' : 'pin-error'}" style="display:block;margin-bottom:12px;">${message}</div>
+    <div class="form-actions">
+      <button type="button" class="btn secondary" onclick="closeModal()">Annuler</button>
+      <button type="button" class="btn ${nouveauStatut ? '' : 'danger'}" id="btnConfirmerStatut" onclick="executerToggleActifEcole('${ecoleId}', '${nomEcole.replace(/'/g,"\\'")}', ${nouveauStatut})">${nouveauStatut ? '▶️ Réactiver' : '⏸️ Suspendre'}</button>
+    </div>`);
+}
+
+async function executerToggleActifEcole(ecoleId, nomEcole, nouveauStatut){
+  const btn = $('#btnConfirmerStatut');
+  if(btn){ btn.disabled = true; btn.classList.add('is-loading'); }
   try{
     const { error } = await sb.from('ecoles').update({ actif: nouveauStatut }).eq('id', ecoleId);
     if(error) throw error;
@@ -548,9 +558,13 @@ async function toggleActifEcole(ecoleId, nomEcole, nouveauStatut){
       ecole_id: ecoleId, ecole_nom: nomEcole,
       auteur_id: session.userId, auteur_nom: session.nomComplet || '',
     });
+    closeModal();
     toast(nouveauStatut ? 'École réactivée' : 'École suspendue');
     await renderConsole();
-  }catch(e){ alert('Erreur : ' + e.message); }
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.classList.remove('is-loading'); }
+    toast('Erreur : ' + e.message);
+  }
 }
 
 function confirmerSupprimerEcole(ecoleId, nomEcole){
@@ -562,11 +576,11 @@ function confirmerSupprimerEcole(ecoleId, nomEcole){
     </div>
     <div class="field">
       <label>Pour confirmer, tape exactement le nom de l'école :</label>
-      <input type="text" id="confirmNomEcole" autocomplete="off">
+      <input type="text" id="confirmNomEcole" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="document.getElementById('btnConfirmerSuppression').disabled = this.value.trim() !== document.getElementById('btnConfirmerSuppression').dataset.nom">
     </div>
     <div class="form-actions">
       <button type="button" class="btn secondary" onclick="closeModal()">Annuler</button>
-      <button type="button" class="btn danger" id="btnConfirmerSuppression" onclick="handleSupprimerEcole('${ecoleId}', '${nomEcole.replace(/'/g,"\\'")}')">Supprimer définitivement</button>
+      <button type="button" class="btn danger" id="btnConfirmerSuppression" disabled data-nom="${escapeHtml(nomEcole)}" onclick="handleSupprimerEcole('${ecoleId}', '${nomEcole.replace(/'/g,"\\'")}')">Supprimer définitivement</button>
     </div>`);
 }
 
@@ -577,7 +591,7 @@ async function handleSupprimerEcole(ecoleId, nomEcole){
     return;
   }
   const btn = $('#btnConfirmerSuppression');
-  btn.disabled = true; btn.textContent = 'Suppression…';
+  btn.disabled = true; btn.classList.add('is-loading');
   try{
     const { data, error } = await sb.functions.invoke('supprimer-ecole-cliente', { body: { ecoleId } });
     if(error) throw new Error(await messageErreurFonction(error));
@@ -587,7 +601,7 @@ async function handleSupprimerEcole(ecoleId, nomEcole){
     await renderConsole();
   }catch(e){
     toast('Erreur : ' + e.message);
-    btn.disabled = false; btn.textContent = 'Supprimer définitivement';
+    btn.disabled = false; btn.classList.remove('is-loading');
   }
 }
 

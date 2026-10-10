@@ -198,6 +198,10 @@ tbody td input[type=number]{ width:90px; }
   table.is-cards tbody, table.is-cards tr{ display:block; }
   table.is-cards tr{ padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--border); }
   table.is-cards tr:last-child{ border-bottom:none; }
+  table.is-cards tr{ width:100%; }
+  /* une cellule d'actions (boutons) ne doit jamais élargir la carte : elle passe à la ligne */
+  table.is-cards td{ white-space:normal !important; min-width:0; flex-wrap:wrap; }
+  table.is-cards td:has(> button, > .btn, > a.btn){ justify-content:flex-start; text-align:left; gap:var(--sp-2); }
   table.is-cards td{ display:flex; justify-content:space-between; align-items:center; gap:var(--sp-3); border:none; padding:var(--sp-1) 0; text-align:right; }
   table.is-cards td[data-label]:not([data-label=""])::before{ content:attr(data-label); color:var(--text-dim); font-weight:600; font-size:var(--fs-xs); text-align:left; flex-shrink:0; }
   /* cellule avec nom d'élève/personne : titre de la carte, sans libellé */
