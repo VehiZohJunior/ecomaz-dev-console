@@ -61,7 +61,7 @@
       new MutationObserver(() => {
         if(fond.classList.contains('open')){
           precedent = document.activeElement;
-          const cible = fond.querySelector('input, select, textarea, button:not(.modal-close)') || btn;
+          const cible = fond.querySelector('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not(.modal-close):not([disabled])') || btn;
           if(cible) setTimeout(() => cible.focus({ preventScroll:true }), 30);
         } else if(precedent && precedent.focus){
           try{ precedent.focus({ preventScroll:true }); }catch(_e){}
