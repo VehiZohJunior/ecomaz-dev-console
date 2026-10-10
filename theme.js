@@ -115,6 +115,75 @@
     (racine || document).querySelectorAll('button[title]:not([aria-label]), a[title]:not([aria-label])').forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
   }
 
+  /* ---- Barre de navigation en bas (téléphone) ----
+     Raccourcis vers les pages les plus utiles de chaque profil + « Menu » qui
+     ouvre le menu complet. Chaque bouton déclenche le bouton du menu d'origine :
+     aucune logique de navigation n'est dupliquée ni modifiée. */
+  const FAVORIS = {
+    enseignant:  ['dashboard', 'notes', 'presences-eleves', 'emploi-temps'],
+    secretariat: ['dashboard', 'eleves', 'presences-eleves', 'comptabilite'],
+    direction:   ['dashboard', 'eleves', 'comptabilite', 'parametres'],
+    fondation:   ['dashboard', 'eleves', 'comptabilite', 'parametres'],
+  };
+  const LIBELLES_COURTS = {
+    fr: { 'dashboard':'Accueil', 'notes':'Notes', 'presences-eleves':'Appel', 'emploi-temps':'Horaires', 'eleves':'Élèves', 'comptabilite':'Compta', 'parametres':'Réglages', menu:'Menu' },
+    en: { 'dashboard':'Home', 'notes':'Grades', 'presences-eleves':'Roll call', 'emploi-temps':'Timetable', 'eleves':'Students', 'comptabilite':'Accounts', 'parametres':'Settings', menu:'Menu' },
+  };
+  function majBarreBas(){
+    const barre = document.getElementById('bottomNav');
+    const nav = document.getElementById('nav');
+    if(!barre || !nav) return;
+    let role = null;
+    try{ role = (typeof ui !== 'undefined' && ui) ? ui.role : null; }catch(_e){}
+    const visibles = [...nav.querySelectorAll('[data-view]')].filter(b => b.style.display !== 'none');
+    const choix = (FAVORIS[role] || []).map(v => visibles.find(b => b.dataset.view === v)).filter(Boolean);
+    const racine = document.getElementById('appRoot');
+    const appVisible = racine && racine.style.display !== 'none';
+    if(!role || !appVisible || !choix.length){ barre.innerHTML = ''; document.body.classList.remove('has-bottom-nav'); return; }
+    const langue = (typeof langCourante !== 'undefined' && LIBELLES_COURTS[langCourante]) ? langCourante : 'fr';
+    const L = LIBELLES_COURTS[langue];
+    const active = visibles.find(b => b.classList.contains('active'));
+    barre.innerHTML = '';
+    choix.forEach(src => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bn-item' + (src === active ? ' active' : '');
+      b.dataset.view = src.dataset.view;
+      if(src === active) b.setAttribute('aria-current', 'page');
+      const ic = src.querySelector('.ic');
+      b.innerHTML = '<span class="bn-ic" aria-hidden="true">' + (ic ? ic.textContent : '•') + '</span><span class="bn-label"></span>';
+      b.querySelector('.bn-label').textContent = L[src.dataset.view] || src.textContent.trim();
+      b.addEventListener('click', () => src.click());
+      barre.appendChild(b);
+    });
+    const menu = document.createElement('button');
+    menu.type = 'button';
+    menu.className = 'bn-item';
+    menu.innerHTML = '<span class="bn-ic" aria-hidden="true">☰</span><span class="bn-label"></span>';
+    menu.querySelector('.bn-label').textContent = L.menu;
+    menu.setAttribute('aria-label', L.menu);
+    menu.addEventListener('click', () => { const bg = document.getElementById('burger'); if(bg) bg.click(); });
+    barre.appendChild(menu);
+    document.body.classList.add('has-bottom-nav');
+  }
+  function installerBarreBas(){
+    const nav = document.getElementById('nav');
+    if(!nav) return; // console développeur : pas de menu latéral
+    const barre = document.createElement('nav');
+    barre.id = 'bottomNav';
+    barre.className = 'bottom-nav';
+    barre.setAttribute('aria-label', 'Navigation principale');
+    document.body.appendChild(barre);
+    let planifie = false;
+    const planifier = () => { if(planifie) return; planifie = true; requestAnimationFrame(() => { planifie = false; majBarreBas(); }); };
+    new MutationObserver(planifier).observe(nav, { attributes:true, attributeFilter:['class', 'style'], subtree:true });
+    const racine = document.getElementById('appRoot');
+    if(racine) new MutationObserver(planifier).observe(racine, { attributes:true, attributeFilter:['style'] });
+    const badge = document.getElementById('roleBadge');
+    if(badge) new MutationObserver(planifier).observe(badge, { childList:true, characterData:true, subtree:true });
+    planifier();
+  }
+
   function demarrer(){
     // Bouton dans la barre du haut (application) et sur l'écran de connexion
     const barre = document.querySelector('.topbar-right');
@@ -130,6 +199,7 @@
     if(main){ main.setAttribute('role', 'main'); }
 
     installerModales();
+    installerBarreBas();
 
     const zone = document.getElementById('viewContainer');
     if(zone){
