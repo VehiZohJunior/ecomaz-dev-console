@@ -1,5 +1,5 @@
 /* =========================================================================
-   EcoMaZ — Console Développeur
+   ConsoDevEcoMaZ — console développeur d'EcoMaZ
    Application volontairement SÉPARÉE du site client (fichiers différents,
    déploiement différent, adresse différente). Le code de gestion des
    écoles clientes n'existe nulle part dans les fichiers du site client —
@@ -15,6 +15,20 @@ const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
 function escapeHtml(str){
   return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Quand une fonction Edge répond avec un code d'erreur, supabase-js met
+// "error" à un message générique ("Edge Function returned a non-2xx status
+// code") — le vrai message est dans le corps de la réponse, accessible via
+// error.context (l'objet Response brut).
+async function messageErreurFonction(error){
+  try{
+    if(error?.context?.json){
+      const corps = await error.context.json();
+      if(corps?.error) return corps.error;
+    }
+  }catch(_e){ /* corps non-JSON ou déjà consommé : on retombe sur error.message */ }
+  return error?.message || 'Erreur inconnue';
 }
 
 function toast(msg){
@@ -44,12 +58,12 @@ function renderLoginGate(error, loading){
   return `
     <div class="login-card">
       <div class="login-logo">🛠️</div>
-      <h1>Console Développeur</h1>
+      <h1>ConsoDevEcoMaZ</h1>
       <div class="sub">Accès réservé — gestion des écoles clientes EcoMaZ</div>
       <form class="pin-pad" onsubmit="return handleLoginSubmit(event)">
         <div class="field" style="text-align:left;margin-bottom:10px;">
           <label>Email</label>
-          <input type="email" id="loginEmail" required autocomplete="username" autofocus>
+          <input type="email" id="loginEmail" required autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="email" autofocus>
         </div>
         <div class="field" style="text-align:left;">
           <label>Mot de passe</label>
@@ -68,7 +82,7 @@ function showLoginGate(error){
 
 async function handleLoginSubmit(ev){
   ev.preventDefault();
-  const email = $('#loginEmail').value.trim();
+  const email = $('#loginEmail').value.trim().toLowerCase();
   const password = $('#loginPassword').value;
   $('#loginGate').innerHTML = renderLoginGate('', true);
   const res = await connexion(email, password);
@@ -172,6 +186,7 @@ function renderVueEcoles(){
       <td><span class="badge ${e.actif!==false?'green':'red'}">${e.actif!==false?'Active':'Suspendue'}</span></td>
       <td>${e.accesSupportDeveloppeur ? `<span class="badge blue">🔓 Accès accordé</span>` : `<span class="hint">Aucun accès</span>`}</td>
       <td style="white-space:nowrap;">
+        <button class="btn secondary sm" onclick="ouvrirLiensApplications('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">📲 Applications</button>
         <button class="btn secondary sm" onclick="ouvrirModifierEcoleForm('${e.id}')">✏️ Modifier</button>
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
         <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
@@ -211,12 +226,46 @@ function renderVueEcoles(){
       <div class="hint" style="line-height:1.7;">
         • La création d'une école crée en même temps son premier compte Direction, en une seule opération sécurisée côté serveur — aucune école ne peut exister sans compte pour s'y connecter, et aucune autre voie ne permet d'en créer.<br>
         • Ce compte développeur n'a accès à aucune donnée d'élève, de note ou de comptabilité d'une école, sauf si CETTE école a explicitement activé "Accès technique développeur" depuis ses Paramètres — et l'accès reste alors en lecture seule.<br>
-        • Suspendre une école bloque immédiatement la connexion de tout son personnel, sans toucher à ses données.<br>
-        • Supprimer une école efface définitivement ses données et ses comptes de connexion — irréversible, demande une confirmation explicite.<br>
+        • Suspendre une école bloque immédiatement la connexion de tout son personnel, de ses parents et de son portier, sans toucher à ses données.<br>
+        • Supprimer une école efface définitivement ses données et ses comptes de connexion (personnel, parents, portier, y compris les comptes Google en attente de validation) — irréversible, demande une confirmation explicite.<br>
+        • Les parents et le portier créent eux-mêmes leur accès avec Google, mais n'obtiennent aucune donnée tant que la direction de l'école n'a pas approuvé leur demande.<br>
         • Cette console est une application séparée du site utilisé par les écoles clientes — son code n'existe pas dans les fichiers qui leur sont livrés.
       </div>
     </div>
   </div>`;
+}
+
+/* ---------------------------------------------------------------------
+   APPLICATIONS D'UNE ÉCOLE — adresses et noms officiels des 3 applications
+   (personnel, parents, portier). Les parents et le portier s'inscrivent
+   eux-mêmes avec Google ; la direction de l'école valide leurs demandes.
+   --------------------------------------------------------------------- */
+const URL_APPLICATION_ECOLES = 'https://vehizohjunior.github.io/ecomaz-app/';
+function copierLien(lien){
+  (navigator.clipboard ? navigator.clipboard.writeText(lien) : Promise.reject()).then(
+    ()=>toast('Lien copié ✅'),
+    ()=>{ window.prompt('Copiez ce lien :', lien); }
+  );
+}
+function ouvrirLiensApplications(ecoleId, nomEcole){
+  const e = devEcoles.find(x=>x.id===ecoleId);
+  const bloc = (icone, nomApp, page, desc) => {
+    const lien = URL_APPLICATION_ECOLES + page + (page === 'index.html' ? '' : '?ecole=' + encodeURIComponent(ecoleId));
+    return `<div style="margin-bottom:16px;">
+      <strong>${icone} ${escapeHtml(nomApp)}</strong>
+      <div class="hint" style="margin:4px 0 6px;">${desc}</div>
+      <input type="text" readonly value="${escapeHtml(lien)}" onfocus="this.select()" style="width:100%;margin-bottom:6px;">
+      <button class="btn secondary sm" onclick="copierLien('${escapeHtml(lien)}')">📋 Copier le lien</button>
+      <a class="btn secondary sm" href="${escapeHtml(lien)}" target="_blank" rel="noopener">Ouvrir</a>
+    </div>`;
+  };
+  openModal(`📲 Applications — ${nomEcole}`, `
+    ${e && e.actif === false ? '<div class="section-note">⏸️ Cette école est suspendue : personne ne peut s\'y connecter tant qu\'elle n\'est pas réactivée.</div>' : ''}
+    ${bloc('🏫', 'EcoMaZ-' + nomEcole, 'index.html', 'Personnel (enseignants, secrétariat, direction, fondation).')}
+    ${bloc('👪', "EcoMaZ-PARENTS D'ELEVES " + nomEcole, 'parent.html', "Parents : connexion avec Google, puis validation de la demande par la direction de l'école (qui lie le parent à son enfant).")}
+    ${bloc('🚪', 'EcoMaZ-PORTIER ' + nomEcole, 'portier.html', "Portier : connexion avec Google, puis validation par la direction. Ses signalements arrivent chez les enseignants.")}
+    <div class="hint" style="line-height:1.6;">Installation : ouvrir le lien sur le téléphone puis « 📲 Installer l'application » (Android) ou Partager → Sur l'écran d'accueil (iPhone). Les demandes d'accès sont visibles par la direction de l'école dans Paramètres → Demandes d'accès — pas depuis cette console.</div>
+    <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
 }
 
 /* ---------------------------------------------------------------------
@@ -353,7 +402,7 @@ async function ouvrirConfigPaiementEnLigne(ecoleId, nomEcole){
   openModal(`💳 Paiement en ligne — ${nomEcole}`, `<div class="hint">Chargement…</div>`);
   try{
     const { data, error } = await sb.functions.invoke('configurer-paiement-en-ligne', { body: { ecoleId } });
-    if(error) throw error;
+    if(error) throw new Error(await messageErreurFonction(error));
     if(!data?.ok) throw new Error(data?.error || 'Échec du chargement');
     renderFormPaiementEnLigne(ecoleId, nomEcole, data);
   }catch(e){
@@ -411,7 +460,7 @@ async function handleSavePaiementEnLigneDev(ev, ecoleId, nomEcole){
   champs.forEach(f=>{ const v = (fd.get(`ident_${f.cle}`)||'').trim(); if(v) identifiants[f.cle] = v; });
   try{
     const { data, error } = await sb.functions.invoke('configurer-paiement-en-ligne', { body: { ecoleId, actif, prestataire, identifiants } });
-    if(error) throw error;
+    if(error) throw new Error(await messageErreurFonction(error));
     if(!data?.ok) throw new Error(data?.error || 'Échec de l\'enregistrement');
     toast('Paiement en ligne mis à jour pour ' + nomEcole);
     renderFormPaiementEnLigne(ecoleId, nomEcole, data);
@@ -473,7 +522,7 @@ async function handleCreerEcole(ev){
         directeurMotDePasse: fd.get('directeurMotDePasse'),
       }
     });
-    if(error) throw error;
+    if(error) throw new Error(await messageErreurFonction(error));
     if(!data?.ok) throw new Error(data?.error || 'Échec de la création');
     closeModal();
     toast('École créée avec succès');
@@ -489,7 +538,7 @@ async function handleCreerEcole(ev){
 async function toggleActifEcole(ecoleId, nomEcole, nouveauStatut){
   const message = nouveauStatut
     ? `Réactiver « ${nomEcole} » ? Le personnel pourra de nouveau se connecter.`
-    : `Suspendre « ${nomEcole} » ? Tout le personnel sera immédiatement bloqué à la connexion, sans toucher à leurs données.`;
+    : `Suspendre « ${nomEcole} » ? Le personnel, les parents et le portier seront immédiatement bloqués à la connexion, sans toucher à leurs données.`;
   if(!confirm(message)) return;
   try{
     const { error } = await sb.from('ecoles').update({ actif: nouveauStatut }).eq('id', ecoleId);
@@ -531,7 +580,7 @@ async function handleSupprimerEcole(ecoleId, nomEcole){
   btn.disabled = true; btn.textContent = 'Suppression…';
   try{
     const { data, error } = await sb.functions.invoke('supprimer-ecole-cliente', { body: { ecoleId } });
-    if(error) throw error;
+    if(error) throw new Error(await messageErreurFonction(error));
     if(!data?.ok) throw new Error(data?.error || 'Échec de la suppression');
     closeModal();
     toast('École supprimée définitivement');

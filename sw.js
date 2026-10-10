@@ -4,10 +4,12 @@
    (elle a de toute façon besoin d'internet pour agir sur les écoles du
    cloud — ceci ne fait que permettre à l'interface de s'afficher).
    ========================================================================= */
-const CACHE_NAME = 'ecomaz-dev-console-shell-v1';
+const CACHE_NAME = 'ecomaz-dev-console-shell-v2';
 const SHELL_FILES = [
   './',
   './index.html',
+  './theme.css',
+  './theme.js',
   './style.css',
   './app-dev.js',
   './config.js',
@@ -38,6 +40,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copie)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(event.request).then((trouve) => trouve || caches.match('./index.html')))
+      .catch(() => caches.match(event.request, { ignoreSearch: true }).then((trouve) => trouve || caches.match('./index.html')))
   );
 });

@@ -1,12 +1,12 @@
 {
-  "name": "EcoMaZ — Console Développeur",
-  "short_name": "EcoMaZ Dev",
+  "name": "ConsoDevEcoMaZ",
+  "short_name": "ConsoDevEcoMaZ",
   "description": "Gestion technique des écoles clientes EcoMaZ",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#363c4f",
+  "theme_color": "#245840",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

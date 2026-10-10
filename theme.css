@@ -1,0 +1,141 @@
+/* =========================================================================
+   EcoMaZ — Système de design (tokens)
+   Fichier unique de thème : couleurs, typographie, espacements, rayons,
+   ombres, mouvement. Thème clair par défaut ; thème sombre automatique
+   (prefers-color-scheme) ou forcé par <html data-theme="dark|light">
+   (bouton de bascule, voir theme.js).
+   Les noms historiques (--bg, --surface, --primary, --green…) restent
+   définis plus bas comme alias : le reste de l'appli n'a pas besoin de
+   changer pour en bénéficier.
+   ========================================================================= */
+
+:root{
+  color-scheme: light;
+
+  /* ---- Couleur primaire : vert forêt (50 → 950) ---- */
+  --forest-50:#f0f7f3; --forest-100:#dcede3; --forest-200:#bbdac8; --forest-300:#8fc1a5;
+  --forest-400:#5fa47f; --forest-500:#3d8a63; --forest-600:#2c6f4e; --forest-700:#245840;
+  --forest-800:#1f4734; --forest-900:#1b3b2c; --forest-950:#0e2219;
+
+  /* ---- Accent : terre cuite (appels à l'action secondaires) ---- */
+  --clay-50:#fdf3ee; --clay-100:#fbe3d8; --clay-200:#f6c5ae; --clay-300:#ee9f7e;
+  --clay-400:#e47a55; --clay-500:#d45d37; --clay-600:#b9482a; --clay-700:#99391f;
+
+  /* ---- Neutres légèrement teintés vert (jamais de gris pur) ---- */
+  --surface-0:#f6f8f5;   /* fond de page   */
+  --surface-1:#ffffff;   /* cartes         */
+  --surface-2:#f1f4f0;   /* champs, survol */
+  --border:#dfe5df;
+  --border-strong:#c6d0c8;
+  --text:#17231c;
+  --text-dim:#566a5d;
+  --text-faint:#7d8f84;
+
+  /* ---- Rôles de la couleur primaire ---- */
+  --primary:var(--forest-700);
+  --primary-hover:var(--forest-800);
+  --primary-soft:var(--forest-100);       /* fond doux (éléments actifs)  */
+  --primary-ink:var(--forest-800);        /* texte sur fond doux          */
+  --on-primary:#ffffff;
+  --accent:var(--clay-600);
+  --accent-soft:var(--clay-50);
+  --focus:var(--forest-500);
+
+  /* ---- Sémantiques (contraste AA sur leur fond doux) ---- */
+  --success:#17753f;  --success-soft:#e3f4ea;
+  --warning:#8f5a00;  --warning-soft:#fdf1d8;
+  --danger:#c4382f;   --danger-soft:#fceceb;
+  --info:#235f9f;     --info-soft:#e6effa;
+
+  /* ---- Typographie (échelle ratio 1,25) ---- */
+  --font-title:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+  --font-body:'Inter','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px;
+  --fs-xl:24px; --fs-2xl:32px; --fs-3xl:40px; --fs-4xl:56px;
+  --lh-text:1.5; --lh-title:1.15;
+
+  /* ---- Espacement (base 4 px) ---- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --sp-6:32px; --sp-7:48px; --sp-8:64px; --sp-9:96px;
+
+  /* ---- Rayons ---- */
+  --r-control:8px; --r-card:12px; --r-lg:16px; --r-pill:9999px;
+
+  /* ---- Ombres (3 niveaux, teintées vert) ---- */
+  --shadow-1:0 1px 2px rgba(23,50,36,.05), 0 1px 1px rgba(23,50,36,.03);
+  --shadow-2:0 2px 6px rgba(23,50,36,.05), 0 8px 20px rgba(23,50,36,.06);
+  --shadow-3:0 12px 32px rgba(23,50,36,.14), 0 4px 10px rgba(23,50,36,.06);
+
+  /* ---- Mouvement ---- */
+  --ease:cubic-bezier(.2,0,0,1);
+  --dur-fast:150ms; --dur:200ms; --dur-slow:250ms;
+
+  /* ---- Mise en page ---- */
+  --content-max:1280px;
+  --gutter:clamp(16px,3vw,28px);
+  --tap:44px;
+
+  /* =====================================================================
+     ALIAS HISTORIQUES — noms utilisés par style.css et app.js
+     ===================================================================== */
+  --bg:var(--surface-0);
+  --surface:var(--surface-1);
+  --primary-dim:var(--primary-soft);
+  --primary-dark:var(--primary-ink);
+  --green:var(--success);   --green-bg:var(--success-soft);
+  --red:var(--danger);      --red-bg:var(--danger-soft);
+  --amber:var(--warning);   --amber-bg:var(--warning-soft);
+  --blue:var(--info);       --blue-bg:var(--info-soft);
+  --purple:var(--accent);   --purple-bg:var(--accent-soft);
+  --radius:var(--r-card);
+  --shadow:var(--shadow-2);
+  --scrim:rgba(14,34,25,.5);
+  font-synthesis:none;
+}
+
+/* ---- Thème sombre : mêmes tokens, valeurs adaptées ---- */
+@media screen and (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --surface-0:#0f1713; --surface-1:#16211b; --surface-2:#1c2a23;
+    --border:#2a3b32; --border-strong:#3a4f44;
+    --text:#e8f0ea; --text-dim:#a3b6aa; --text-faint:#7f9487;
+    --primary:#4c9b73; --primary-hover:#6cb88f; --primary-soft:#1d3a2b; --primary-ink:#9fdcba;
+    --on-primary:#07140d;
+    --accent:#ee9f7e; --accent-soft:#3a2219; --focus:#7fd0a3;
+    --success:#6fd49a; --success-soft:#14301f;
+    --warning:#e6b84f; --warning-soft:#33290f;
+    --danger:#f28b83;  --danger-soft:#3b1d1b;
+    --info:#86b6f0;    --info-soft:#17283d;
+    --shadow-1:0 1px 2px rgba(0,0,0,.35);
+    --shadow-2:0 2px 6px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.28);
+    --shadow-3:0 12px 32px rgba(0,0,0,.55);
+    --scrim:rgba(0,0,0,.65);
+  }
+}
+@media screen{
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-0:#0f1713; --surface-1:#16211b; --surface-2:#1c2a23;
+    --border:#2a3b32; --border-strong:#3a4f44;
+    --text:#e8f0ea; --text-dim:#a3b6aa; --text-faint:#7f9487;
+    --primary:#4c9b73; --primary-hover:#6cb88f; --primary-soft:#1d3a2b; --primary-ink:#9fdcba;
+    --on-primary:#07140d;
+    --accent:#ee9f7e; --accent-soft:#3a2219; --focus:#7fd0a3;
+    --success:#6fd49a; --success-soft:#14301f;
+    --warning:#e6b84f; --warning-soft:#33290f;
+    --danger:#f28b83;  --danger-soft:#3b1d1b;
+    --info:#86b6f0;    --info-soft:#17283d;
+    --shadow-1:0 1px 2px rgba(0,0,0,.35);
+    --shadow-2:0 2px 6px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.28);
+    --shadow-3:0 12px 32px rgba(0,0,0,.55);
+    --scrim:rgba(0,0,0,.65);
+  }
+}
+
+@media (max-width:900px){
+  :root{ --fs-sm:15px; }
+}
+@media (prefers-reduced-motion: reduce){
+  :root{ --dur-fast:0ms; --dur:0ms; --dur-slow:0ms; }
+}
