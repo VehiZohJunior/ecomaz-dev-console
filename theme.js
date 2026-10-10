@@ -101,6 +101,12 @@
     });
   }
 
+  /* ---- Boutons-icônes : le texte (un emoji) ne dit rien à un lecteur d'écran ;
+        on reprend leur infobulle (title) comme nom accessible ---- */
+  function nommerBoutons(racine){
+    (racine || document).querySelectorAll('button[title]:not([aria-label]), a[title]:not([aria-label])').forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
+  }
+
   function demarrer(){
     // Bouton dans la barre du haut (application) et sur l'écran de connexion
     const barre = document.querySelector('.topbar-right');
@@ -123,10 +129,13 @@
       new MutationObserver(() => {
         if(planifie) return;
         planifie = true;
-        requestAnimationFrame(() => { planifie = false; etiqueterTableaux(zone); });
+        requestAnimationFrame(() => { planifie = false; etiqueterTableaux(zone); nommerBoutons(zone); });
       }).observe(zone, { childList:true, subtree:true });
       etiqueterTableaux(zone);
+      nommerBoutons(zone);
     }
+    const haut = document.querySelector('.topbar-right');
+    if(haut){ nommerBoutons(haut); new MutationObserver(() => nommerBoutons(haut)).observe(haut, { childList:true, subtree:true }); }
     if(window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', majBoutons);
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
