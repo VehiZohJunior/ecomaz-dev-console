@@ -90,6 +90,14 @@
   /* ---- Tableaux -> cartes sur téléphone : on recopie l'en-tête de chaque
         colonne dans un attribut data-label de chaque cellule ---- */
   function etiqueterTableaux(racine){
+    // tableaux posés « nus » dans un bloc : on les enveloppe pour qu'ils défilent au lieu de déborder
+    (racine || document).querySelectorAll('table:not(.timetable)').forEach(t => {
+      if(t.closest('.table-wrap') || t.closest('.modal')) return;
+      const enveloppe = document.createElement('div');
+      enveloppe.className = 'table-wrap';
+      t.parentNode.insertBefore(enveloppe, t);
+      enveloppe.appendChild(t);
+    });
     (racine || document).querySelectorAll('.table-wrap table:not(.timetable):not(.is-cards)').forEach(t => {
       const ths = [...t.querySelectorAll('thead th')];
       if(!ths.length || t.querySelector('td[colspan]')) return;
