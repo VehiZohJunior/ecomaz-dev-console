@@ -1,0 +1,113 @@
+/* Fichier issu de la spécification docs/ECOMAZ_MOTION_DESIGN_SPEC.md (§ 2.1).
+   Seule adaptation : le thème sombre est limité à l'écran (@media screen) pour
+   que les reçus et bulletins imprimés restent toujours clairs. */
+/* =========================================================
+   EcoMaZ — Jetons de design (source unique)
+   ========================================================= */
+:root {
+  /* --- Marque --- */
+  --em-green-900: #14392d;   /* fonds forts, texte sur clair, hero */
+  --em-green-700: #1f5c46;   /* couleur primaire : boutons, liens, logo */
+  --em-green-500: #2e7d62;   /* succès de marque, coches, barres */
+  --em-green-100: #e3f1eb;   /* fonds doux, pastille d'onglet actif */
+
+  /* --- Accents --- */
+  --em-terracotta-600: #b5492f; /* badges, sur-titres, notifications */
+  --em-terracotta-800: #8a3520; /* texte sur fond terracotta-100 */
+  --em-terracotta-100: #f8e6df;
+  --em-gold-400: #e8b04b;       /* honneur, CTA, focus, halo */
+  --em-gold-100: #fbf0d9;
+  --em-gold-800: #8a5a0c;       /* texte sur fond gold-100 */
+
+  /* --- Neutres --- */
+  --em-bg: #f5f7f5;
+  --em-surface: #ffffff;
+  --em-text: #1a1f1c;
+  --em-text-muted: #5f6b65;     /* contraste ≥ 4.5:1 sur blanc */
+  --em-text-on-dark: #cfe3da;   /* texte secondaire sur green-900 */
+  --em-border: #e4e9e6;
+
+  /* --- États --- */
+  --em-success: #10b981;
+  --em-danger: #ef4444;
+  --em-warning: #f59e0b;
+
+  /* --- Portier (thème sombre dédié) --- */
+  --em-gate-bg: #0f1613;
+  --em-gate-surface: #17201c;
+  --em-gate-border: #26332d;
+  --em-gate-text: #eef3f0;
+  --em-gate-muted: #9fb0a7;
+
+  /* --- Rayons --- */
+  --em-radius-xs: 9px;
+  --em-radius-sm: 12px;
+  --em-radius-md: 16px;
+  --em-radius-lg: 20px;
+  --em-radius-xl: 24px;
+  --em-radius-2xl: 28px;
+  --em-radius-pill: 999px;
+
+  /* --- Ombres --- */
+  --em-shadow-sm: 0 1px 2px rgba(20, 57, 45, 0.06);
+  --em-shadow-md: 0 8px 24px rgba(20, 57, 45, 0.08);
+  --em-shadow-hover: 0 14px 30px rgba(20, 57, 45, 0.14);
+  --em-shadow-lg: 0 22px 44px rgba(20, 57, 45, 0.12);
+  --em-shadow-float: 0 40px 80px rgba(0, 0, 0, 0.45);
+
+  /* --- Espacements (base 4) --- */
+  --em-space-1: 4px;  --em-space-2: 8px;  --em-space-3: 12px;
+  --em-space-4: 16px; --em-space-5: 20px; --em-space-6: 24px;
+  --em-space-8: 32px; --em-space-10: 40px; --em-space-14: 56px;
+
+  /* --- Typographie --- */
+  --em-font: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --em-fw-regular: 400; --em-fw-semibold: 600; --em-fw-bold: 700;
+  --em-fw-extrabold: 800; --em-fw-black: 900;
+  --em-fs-11: 0.6875rem; --em-fs-12: 0.75rem; --em-fs-13: 0.8125rem;
+  --em-fs-14: 0.875rem;  --em-fs-15: 0.9375rem; --em-fs-17: 1.0625rem;
+  --em-fs-20: 1.25rem;   --em-fs-26: 1.625rem;
+
+  /* --- Mouvement (voir § 3) --- */
+  --em-ease-out:  cubic-bezier(.22, 1, .36, 1);
+  --em-ease-back: cubic-bezier(.34, 1.56, .64, 1);
+  --em-ease-tab:  cubic-bezier(.34, 1.4, .64, 1);
+  --em-ease-sym:  cubic-bezier(.65, 0, .35, 1);
+  --em-dur-press: 160ms;
+  --em-dur-hover: 240ms;
+  --em-dur-enter: 520ms;
+  --em-dur-celebrate: 760ms;
+  --em-stagger: 80ms;
+}
+
+/* Mode sombre (console parent / enseignant / admin) */
+@media screen {
+:root[data-theme="dark"] {
+  --em-bg: #0f1613;
+  --em-surface: #17201c;
+  --em-text: #eef3f0;
+  --em-text-muted: #9fb0a7;
+  --em-border: #26332d;
+  --em-green-100: #1d3a2f;
+  --em-terracotta-100: #3a221b;
+  --em-gold-100: #3a2e17;
+  --em-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --em-shadow-hover: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+}
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --em-bg: #0f1613; --em-surface: #17201c; --em-text: #eef3f0;
+    --em-text-muted: #9fb0a7; --em-border: #26332d; --em-green-100: #1d3a2f;
+    --em-terracotta-100: #3a221b; --em-gold-100: #3a2e17;
+    --em-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* Réduction des animations : toutes les durées tombent à 0 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --em-dur-press: 0ms; --em-dur-hover: 0ms;
+    --em-dur-enter: 0ms; --em-dur-celebrate: 0ms; --em-stagger: 0ms;
+  }
+}
