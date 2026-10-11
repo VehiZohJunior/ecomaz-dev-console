@@ -213,7 +213,7 @@ function renderVueEcoles(){
         </div>
       </div>
       <div class="filters" style="margin-bottom:14px;">
-        <input type="text" id="rechercheEcoles" placeholder="🔍 Rechercher (nom, adresse, téléphone)…" value="${escapeHtml(filtreEcoles)}" oninput="filtrerEcoles(this.value)" style="width:100%;max-width:420px;">
+        <input type="text" id="rechercheEcoles" placeholder="Rechercher (nom, adresse, téléphone)…" aria-label="Rechercher une école" value="${escapeHtml(filtreEcoles)}" oninput="filtrerEcoles(this.value)" style="width:100%;max-width:420px;">
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>École</th><th>Adresse</th><th>Téléphone</th><th>Statut</th><th>Accès support</th><th>Actions</th></tr></thead>
@@ -493,7 +493,7 @@ function openCreerEcoleForm(){
           <label>Mot de passe initial</label>
           <div style="display:flex;gap:8px;">
             <input type="text" id="champMotDePasseEcole" name="directeurMotDePasse" required minlength="8" placeholder="Au moins 8 caractères — ou génère-en un robuste" style="flex:1;">
-            <button type="button" class="btn secondary sm" onclick="genererMotDePasseRobuste()">🎲 Générer</button>
+            <button type="button" class="btn secondary sm" onclick="genererMotDePasseRobuste()">✨ Générer</button>
           </div>
           <div class="hint" style="margin-top:6px;">Transmets ce mot de passe au directeur de façon sûre (jamais par une voie publique).</div>
         </div>
