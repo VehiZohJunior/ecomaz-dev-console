@@ -4,16 +4,17 @@
    (elle a de toute façon besoin d'internet pour agir sur les écoles du
    cloud — ceci ne fait que permettre à l'interface de s'afficher).
    ========================================================================= */
-const CACHE_NAME = 'ecomaz-dev-console-shell-v3';
+const CACHE_NAME = 'ecomaz-dev-console-shell-v4';
 const SHELL_FILES = [
   './',
   './index.html',
   './ecomaz-tokens.css',
   './ecomaz-motion.css',
-  './motion.js',
-  './icones.js',
+  './motion.min.js',
+  './icones.min.js',
+  './icones.svg',
   './theme.css',
-  './theme.js',
+  './theme.min.js',
   './style.css',
   './app-dev.js',
   './config.js',

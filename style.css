@@ -862,3 +862,13 @@ td:has(> .amount), th.montant{ text-align:right; }
 .tt-encours .tt-slot{ box-shadow:inset 0 0 0 2px var(--em-gold-400); background:var(--em-gold-100); }
 .tt-badge-encours{ display:inline-block; font-size:10px; font-weight:900; letter-spacing:.04em; text-transform:uppercase;
   color:var(--em-gold-800); background:var(--em-surface); border-radius:var(--em-radius-pill); padding:1px 6px; margin-bottom:3px; }
+
+/* Notification de mise à jour */
+.maj-intro{ font-size:var(--em-fs-15); line-height:1.5; margin-bottom:var(--sp-3); }
+.maj-liste{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; font-size:var(--em-fs-14); }
+.bandeau-maj{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(84px + env(safe-area-inset-bottom, 0px)); z-index:260;
+  display:flex; align-items:center; gap:12px; background:var(--em-green-900); color:#fff; border-radius:var(--em-radius-md);
+  padding:10px 12px 10px 16px; box-shadow:var(--em-shadow-lg); font-size:var(--em-fs-14); font-weight:700; width:max-content; max-width:calc(100vw - 32px);
+  animation:em-toast 460ms var(--em-ease-back) both; }
+.bandeau-maj button{ background:var(--em-gold-400); color:var(--em-green-900); border:none; border-radius:12px; min-height:40px; padding:0 14px; font:900 var(--em-fs-14) var(--em-font); cursor:pointer; flex-shrink:0; }
+@media print{ .bandeau-maj{ display:none !important; } }

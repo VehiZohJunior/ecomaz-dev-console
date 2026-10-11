@@ -202,6 +202,16 @@
     el.click();
   });
 
+  /* ---- Bandeau « nouvelle version disponible » (appelé par l'enregistrement du service worker) ---- */
+  window.afficherMiseAJourDisponible = function(){
+    if(document.getElementById('bandeauMaj')) return;
+    const b = document.createElement('div');
+    b.id = 'bandeauMaj'; b.className = 'bandeau-maj'; b.setAttribute('role', 'status');
+    b.innerHTML = '<span>Une nouvelle version d’EcoMaZ est disponible.</span><button type="button">Mettre à jour</button>';
+    b.querySelector('button').addEventListener('click', () => location.reload());
+    document.body.appendChild(b);
+  };
+
   function demarrer(){
     // Bouton dans la barre du haut (application) et sur l'écran de connexion
     const barre = document.querySelector('.topbar-right');
