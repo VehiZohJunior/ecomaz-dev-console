@@ -247,24 +247,43 @@ function copierLien(lien){
     ()=>{ window.prompt('Copiez ce lien :', lien); }
   );
 }
-function ouvrirLiensApplications(ecoleId, nomEcole){
+// Message WhatsApp prêt à envoyer : le lien + comment installer l'application
+function messageInstallation(nomApp, lien, page){
+  return `Bonjour, voici l'application ${nomApp} :\n${lien}\n\n`
+    + (page === 'index.html'
+      ? `Ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), connectez-vous avec vos identifiants, puis touchez « Installer l'application » (sur iPhone : Partager → Sur l'écran d'accueil).`
+      : `Pour l'installer : ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), puis touchez « Installer l'application sur ce téléphone » (sur iPhone : Partager → Sur l'écran d'accueil). Connectez-vous ensuite avec Google : l'école validera votre accès.`);
+}
+function basculerQr(id, lien){
+  const zone = document.getElementById(id);
+  if(!zone) return;
+  if(zone.innerHTML){ zone.innerHTML = ''; return; }
+  try{ const qr = qrcode(0, 'M'); qr.addData(lien); qr.make(); zone.innerHTML = `<div style="max-width:220px;margin:8px 0;background:#fff;padding:6px;border-radius:8px;">${qr.createSvgTag({ cellSize:5, margin:2, scalable:true })}</div>`; }
+  catch(_e){ zone.textContent = 'QR code indisponible.'; }
+}
+function ouvrirLiensApplications(ecoleId, nomEcole, justeCreee){
   const e = devEcoles.find(x=>x.id===ecoleId);
   const bloc = (icone, nomApp, page, desc) => {
     const lien = URL_APPLICATION_ECOLES + page + (page === 'index.html' ? '' : '?ecole=' + encodeURIComponent(ecoleId));
+    const idQr = 'qr-' + page.replace('.html', '');
     return `<div style="margin-bottom:16px;">
       <strong>${icone} ${escapeHtml(nomApp)}</strong>
       <div class="hint" style="margin:4px 0 6px;">${desc}</div>
       <input type="text" readonly value="${escapeHtml(lien)}" onfocus="this.select()" style="width:100%;margin-bottom:6px;">
+      <a class="btn sm" href="https://wa.me/?text=${encodeURIComponent(messageInstallation(nomApp, lien, page))}" target="_blank" rel="noopener">📲 Envoyer par WhatsApp</a>
       <button class="btn secondary sm" onclick="copierLien('${escapeHtml(lien)}')">📋 Copier le lien</button>
+      <button class="btn secondary sm" onclick="basculerQr('${idQr}', '${escapeHtml(lien)}')">QR code</button>
       <a class="btn secondary sm" href="${escapeHtml(lien)}" target="_blank" rel="noopener">Ouvrir</a>
+      <div id="${idQr}"></div>
     </div>`;
   };
   openModal(`📲 Applications — ${nomEcole}`, `
+    ${justeCreee ? `<div class="section-note">✅ <strong>${escapeHtml(nomEcole)}</strong> est créée. Ses trois applications sont déjà en service et installables : il suffit d'envoyer les liens ci-dessous (la direction se connecte avec l'e-mail et le mot de passe saisis à la création).</div>` : ''}
     ${e && e.actif === false ? '<div class="section-note">⏸️ Cette école est suspendue : personne ne peut s\'y connecter tant qu\'elle n\'est pas réactivée.</div>' : ''}
     ${bloc('🏫', 'EcoMaZ-' + nomEcole, 'index.html', 'Personnel (enseignants, secrétariat, direction, fondation).')}
     ${bloc('👪', "EcoMaZ-PARENTS D'ELEVES " + nomEcole, 'parent.html', "Parents : connexion avec Google, puis validation de la demande par la direction de l'école (qui lie le parent à son enfant).")}
     ${bloc('🚪', 'EcoMaZ-PORTIER ' + nomEcole, 'portier.html', "Portier : connexion avec Google, puis validation par la direction. Ses signalements arrivent chez les enseignants.")}
-    <div class="hint" style="line-height:1.6;">Installation : ouvrir le lien sur le téléphone puis « 📲 Installer l'application » (Android) ou Partager → Sur l'écran d'accueil (iPhone). Les demandes d'accès sont visibles par la direction de l'école dans Paramètres → Demandes d'accès — pas depuis cette console.</div>
+    <div class="hint" style="line-height:1.6;">Installation : ouvrir le lien dans Chrome (Android) ou Safari (iPhone) puis « 📲 Installer l'application sur ce téléphone », ou Partager → Sur l'écran d'accueil (iPhone). Le message WhatsApp contient déjà ces explications. Les demandes d'accès sont visibles par la direction de l'école dans Paramètres → Demandes d'accès — pas depuis cette console.</div>
     <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
 }
 
@@ -527,6 +546,9 @@ async function handleCreerEcole(ev){
     closeModal();
     toast('École créée avec succès');
     await renderConsole();
+    // Les applications Parents et Portier fonctionnent aussitôt pour la nouvelle
+    // école (aucun réglage) : on affiche directement leurs liens prêts à envoyer.
+    ouvrirLiensApplications(data.ecoleId, fd.get('nomEcole').trim(), true);
   }catch(e){
     const el = $('#creerEcoleError');
     if(el) el.textContent = 'Erreur : ' + e.message;
