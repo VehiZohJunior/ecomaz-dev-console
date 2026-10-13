@@ -159,6 +159,12 @@ async function renderConsole(){
     devSante = {};
     rowsToCamel(data || []).forEach(r => { devSante[r.ecoleId] = r; });
   }catch(_e){ devSante = {}; }
+  // Erreurs rencontrées dans les applications (14 derniers jours)
+  try{
+    const { data, error } = await sb.rpc('erreurs_recentes', { p_jours: 14 });
+    if(error) throw error;
+    devErreurs = rowsToCamel(data || []);
+  }catch(_e){ devErreurs = []; }
   pageEcoles = 1;
   renderVueEcoles();
 }
@@ -176,6 +182,21 @@ function changerPageEcoles(page){
 }
 
 let devSante = {};
+let devErreurs = [];
+function renderErreursRecentes(){
+  const nom = id => (devEcoles.find(e => e.id === id) || {}).nomEcole || '—';
+  const page = u => { try{ return new URL(u).pathname.split('/').pop() || 'index.html'; }catch(_e){ return u || '—'; } };
+  return `<div class="panel">
+    <div class="panel-head"><div><h2>🐞 Erreurs récentes (14 jours)</h2><div class="sub">Bugs rencontrés par les utilisateurs dans les applications — à transmettre à Claude pour correction</div></div></div>
+    ${!devErreurs.length ? '<div class="hint">✅ Aucune erreur enregistrée ces 14 derniers jours.</div>' : `<div class="table-wrap"><table>
+      <thead><tr><th>Dernière fois</th><th>École</th><th>Profil</th><th>Écran</th><th>Erreur</th><th>Nombre</th></tr></thead>
+      <tbody>${devErreurs.map(e => `<tr>
+        <td style="white-space:nowrap;">${new Date(e.derniere).toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+        <td>${escapeHtml(nom(e.ecoleId))}</td><td>${escapeHtml(e.role || '—')}</td><td>${escapeHtml(page(e.page))}</td>
+        <td style="max-width:420px;overflow-wrap:anywhere;"><code style="font-size:12px;">${escapeHtml(e.message)}</code></td><td>${e.nombre}</td>
+      </tr>`).join('')}</tbody></table></div>`}
+  </div>`;
+}
 // Niveau d'usage d'une école, d'après ses chiffres
 function etatUsage(sa){
   if(!sa) return { cls:'gray', lib:'—' };
@@ -251,6 +272,7 @@ function renderVueEcoles(){
   $('#viewContainer').innerHTML = `
   <div class="view active">
     ${renderSanteEcoles()}
+    ${renderErreursRecentes()}
     <div class="panel">
       <div class="panel-head">
         <div><h2>🏫 Écoles clientes</h2><div class="sub">${filtrees.length} école(s)${terme ? ` sur ${devEcoles.length} au total` : ''}</div></div>
