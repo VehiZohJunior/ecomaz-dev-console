@@ -355,6 +355,16 @@ function ouvrirLiensApplications(ecoleId, nomEcole, justeCreee){
     ${bloc('👪', "EcoMaZ-PARENTS D'ELEVES " + nomEcole, 'parent.html', "Parents : connexion avec Google, puis validation de la demande par la direction de l'école (qui lie le parent à son enfant).")}
     ${bloc('👩‍🏫', 'EcoMaZ-ENSEIGNANTS ' + nomEcole, 'enseignant.html', "Enseignants : connexion avec Google, ils écrivent leur nom et cochent leurs classes ; la direction valide. Chacun ne voit que ses classes.")}
     ${bloc('🚪', 'EcoMaZ-PORTIER ' + nomEcole, 'portier.html', "Portier : connexion avec Google, puis validation par la direction. Ses signalements arrivent chez les enseignants.")}
+    ${(() => { const lien = URL_APPLICATION_ECOLES + 'preinscription.html?ecole=' + encodeURIComponent(ecoleId);
+      const msg = `📝 Pré-inscriptions ouvertes à ${nomEcole} ! Remplissez le formulaire en ligne, l'école vous rappelle : ${lien}`;
+      return `<div style="margin-bottom:16px;"><strong>📝 Pré-inscription en ligne (familles, sans compte)</strong>
+      <div class="hint" style="margin:4px 0 6px;">Page publique à partager (WhatsApp, Facebook) : les demandes arrivent dans Élèves & Inscriptions de l'école.</div>
+      <input type="text" readonly value="${escapeHtml(lien)}" onfocus="this.select()" style="width:100%;margin-bottom:6px;">
+      <a class="btn sm" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">📲 Envoyer par WhatsApp</a>
+      <button class="btn secondary sm" onclick="copierLien('${escapeHtml(lien)}')">📋 Copier le lien</button>
+      <button class="btn secondary sm" onclick="basculerQr('qr-preinscription', '${escapeHtml(lien)}')">QR code</button>
+      <a class="btn secondary sm" href="${escapeHtml(lien)}" target="_blank" rel="noopener">Ouvrir</a>
+      <div id="qr-preinscription"></div></div>`; })()}
     <div class="hint" style="line-height:1.6;">Installation : ouvrir le lien dans Chrome (Android) ou Safari (iPhone) puis « 📲 Installer l'application sur ce téléphone », ou Partager → Sur l'écran d'accueil (iPhone). Le message WhatsApp contient déjà ces explications. Les demandes d'accès sont visibles par la direction de l'école dans Paramètres → Demandes d'accès — pas depuis cette console.</div>
     <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
 }
