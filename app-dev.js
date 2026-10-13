@@ -262,6 +262,7 @@ function renderVueEcoles(){
         <button class="btn secondary sm" onclick="ouvrirModifierEcoleForm('${e.id}')">✏️ Modifier</button>
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
         <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
+        <button class="btn secondary sm" onclick="ouvrirDoubleVerificationEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔐 Codes</button>
         <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
         ${devSante[e.id] && devSante[e.id].elevesActifs === 0 && !e.estDemo ? `<button class="btn secondary sm" onclick="preparerEcoleDemo('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🎭 En faire une école démo</button>` : ''}
         ${e.estDemo ? '<span class="badge amber">🎭 Démo (données fictives)</span>' : ''}
@@ -338,6 +339,35 @@ function basculerQr(id, lien){
   if(zone.innerHTML){ zone.innerHTML = ''; return; }
   try{ const qr = qrcode(0, 'M'); qr.addData(lien); qr.make(); zone.innerHTML = `<div style="max-width:220px;margin:8px 0;background:#fff;padding:6px;border-radius:8px;">${qr.createSvgTag({ cellSize:5, margin:2, scalable:true })}</div>`; }
   catch(_e){ zone.textContent = 'QR code indisponible.'; }
+}
+// Double vérification d'une école : qui est protégé, et réinitialisation en
+// cas de téléphone perdu (schema.sql section 82 — motif obligatoire, inscrit
+// au journal d'audit par la base elle-même).
+async function ouvrirDoubleVerificationEcole(ecoleId, nomEcole){
+  openModal(`🔐 Double vérification — ${nomEcole}`, '<div class="hint">Chargement…</div>');
+  try{
+    const { data, error } = await sb.rpc('comptes_double_verification', { p_ecole: ecoleId });
+    if(error) throw error;
+    const lignes = data || [];
+    $('#modalBody').innerHTML = `
+      <p class="hint" style="margin-top:0;">Un compte protégé demande un code à 6 chiffres à chaque connexion. Si la personne a perdu son téléphone, <strong>vérifiez d’abord son identité</strong> (appel, visite), puis réinitialisez : elle se reconnecte avec son mot de passe et réactive la protection.</p>
+      ${!lignes.length ? '<div class="hint">Aucun compte du personnel.</div>' : `<div class="table-wrap"><table>
+        <thead><tr><th>Compte</th><th>Profil</th><th>Double vérification</th><th></th></tr></thead>
+        <tbody>${lignes.map(l => `<tr><td>${escapeHtml(l.nom || '—')}</td><td>${escapeHtml(l.role)}</td>
+          <td>${l.protege ? '<span class="badge green">🔐 activée</span>' : '<span class="badge">non activée</span>'}</td>
+          <td>${l.protege ? `<button class="btn danger sm" onclick="reinitialiserDoubleVerification('${l.user_id}', '${escapeHtml(l.nom || '').replace(/'/g, "\\'")}', '${ecoleId}', '${escapeHtml(nomEcole).replace(/'/g, "\\'")}')">Réinitialiser</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`}
+      <div class="form-actions"><button class="btn secondary" onclick="closeModal()">Fermer</button></div>`;
+  }catch(e){ $('#modalBody').innerHTML = `<div class="hint">Erreur : ${escapeHtml(e.message)}</div>`; }
+}
+async function reinitialiserDoubleVerification(userId, nom, ecoleId, nomEcole){
+  const motif = prompt(`Réinitialiser la double vérification de « ${nom} » ?\n\nIndiquez le motif et comment l'identité a été vérifiée (inscrit au journal d'audit) :`, 'Téléphone perdu — identité vérifiée par ');
+  if(motif === null) return;
+  try{
+    const { data, error } = await sb.rpc('reinitialiser_double_verification', { p_user: userId, p_motif: motif });
+    if(error) throw error;
+    alert(`✅ Double vérification réinitialisée (${data} code supprimé). La personne se reconnecte avec son mot de passe, puis réactive la protection dans « 🔐 Sécurité du compte ».`);
+    ouvrirDoubleVerificationEcole(ecoleId, nomEcole);
+  }catch(e){ alert('Refusé : ' + e.message); }
 }
 // Transforme une école NEUVE (aucun élève) en école de démonstration remplie
 // de données fictives (schema.sql section 75). Refusé par la base pour toute
