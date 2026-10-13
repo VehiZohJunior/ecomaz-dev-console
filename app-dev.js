@@ -263,6 +263,8 @@ function renderVueEcoles(){
         ${e.accesSupportDeveloppeur ? `<button class="btn secondary sm" onclick="inspecterEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🔍 Inspecter</button>` : ''}
         <button class="btn secondary sm" onclick="ouvrirConfigPaiementEnLigne('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">💳 Mobile Money</button>
         <button class="btn secondary sm" onclick="toggleActifEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}', ${e.actif===false})">${e.actif!==false?'⏸️ Suspendre':'▶️ Réactiver'}</button>
+        ${devSante[e.id] && devSante[e.id].elevesActifs === 0 && !e.estDemo ? `<button class="btn secondary sm" onclick="preparerEcoleDemo('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🎭 En faire une école démo</button>` : ''}
+        ${e.estDemo ? '<span class="badge amber">🎭 Démo (données fictives)</span>' : ''}
         <button class="btn danger sm" onclick="confirmerSupprimerEcole('${e.id}', '${escapeHtml(e.nomEcole).replace(/'/g,"\\'")}')">🗑️ Supprimer</button>
       </td>
     </tr>`).join('');
@@ -336,6 +338,20 @@ function basculerQr(id, lien){
   if(zone.innerHTML){ zone.innerHTML = ''; return; }
   try{ const qr = qrcode(0, 'M'); qr.addData(lien); qr.make(); zone.innerHTML = `<div style="max-width:220px;margin:8px 0;background:#fff;padding:6px;border-radius:8px;">${qr.createSvgTag({ cellSize:5, margin:2, scalable:true })}</div>`; }
   catch(_e){ zone.textContent = 'QR code indisponible.'; }
+}
+// Transforme une école NEUVE (aucun élève) en école de démonstration remplie
+// de données fictives (schema.sql section 75). Refusé par la base pour toute
+// école qui a déjà des élèves.
+async function preparerEcoleDemo(ecoleId, nomEcole){
+  const saisie = prompt(`« ${nomEcole} » va devenir une ÉCOLE DE DÉMONSTRATION : 72 élèves, 9 classes, 9 enseignants, notes, présences et paiements FICTIFS seront créés, avec un bandeau « démonstration » dans l'application.\n\nÀ n'utiliser que pour une école créée exprès pour vos présentations. Tapez DEMO pour confirmer :`);
+  if(saisie === null) return;
+  if(saisie.trim().toUpperCase() !== 'DEMO') return alert('Confirmation incorrecte : rien n’a été fait.');
+  try{
+    const { data, error } = await sb.rpc('preparer_ecole_demo', { p_ecole: ecoleId });
+    if(error) throw error;
+    alert('✅ ' + data + '. Connectez-vous à cette école avec le compte direction choisi à sa création pour la présenter.');
+    location.reload();
+  }catch(e){ alert('Refusé : ' + e.message); }
 }
 function ouvrirLiensApplications(ecoleId, nomEcole, justeCreee){
   const e = devEcoles.find(x=>x.id===ecoleId);
