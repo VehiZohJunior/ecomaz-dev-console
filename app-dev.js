@@ -299,7 +299,9 @@ function messageInstallation(nomApp, lien, page){
   return `Bonjour, voici l'application ${nomApp} :\n${lien}\n\n`
     + (page === 'index.html'
       ? `Ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), connectez-vous avec vos identifiants, puis touchez « Installer l'application » (sur iPhone : Partager → Sur l'écran d'accueil).`
-      : `Pour l'installer : ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), puis touchez « Installer l'application sur ce téléphone » (sur iPhone : Partager → Sur l'écran d'accueil). Connectez-vous ensuite avec Google : l'école validera votre accès.`);
+      : page === 'enseignant.html'
+        ? `Ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), touchez « Continuer avec Google », écrivez votre nom et cochez votre ou vos classes. La direction validera votre inscription.`
+        : `Pour l'installer : ouvrez ce lien dans Chrome (Android) ou Safari (iPhone), puis touchez « Installer l'application sur ce téléphone » (sur iPhone : Partager → Sur l'écran d'accueil). Connectez-vous ensuite avec Google : l'école validera votre accès.`);
 }
 function basculerQr(id, lien){
   const zone = document.getElementById(id);
@@ -325,10 +327,11 @@ function ouvrirLiensApplications(ecoleId, nomEcole, justeCreee){
     </div>`;
   };
   openModal(`📲 Applications — ${nomEcole}`, `
-    ${justeCreee ? `<div class="section-note">✅ <strong>${escapeHtml(nomEcole)}</strong> est créée. Ses trois applications sont déjà en service et installables : il suffit d'envoyer les liens ci-dessous (la direction se connecte avec l'e-mail et le mot de passe saisis à la création).</div>` : ''}
+    ${justeCreee ? `<div class="section-note">✅ <strong>${escapeHtml(nomEcole)}</strong> est créée. Ses quatre applications sont déjà en service et installables : il suffit d'envoyer les liens ci-dessous (la direction se connecte avec l'e-mail et le mot de passe saisis à la création).</div>` : ''}
     ${e && e.actif === false ? '<div class="section-note">⏸️ Cette école est suspendue : personne ne peut s\'y connecter tant qu\'elle n\'est pas réactivée.</div>' : ''}
     ${bloc('🏫', 'EcoMaZ-' + nomEcole, 'index.html', 'Personnel (enseignants, secrétariat, direction, fondation).')}
     ${bloc('👪', "EcoMaZ-PARENTS D'ELEVES " + nomEcole, 'parent.html', "Parents : connexion avec Google, puis validation de la demande par la direction de l'école (qui lie le parent à son enfant).")}
+    ${bloc('👩‍🏫', 'EcoMaZ-ENSEIGNANTS ' + nomEcole, 'enseignant.html', "Enseignants : connexion avec Google, ils écrivent leur nom et cochent leurs classes ; la direction valide. Chacun ne voit que ses classes.")}
     ${bloc('🚪', 'EcoMaZ-PORTIER ' + nomEcole, 'portier.html', "Portier : connexion avec Google, puis validation par la direction. Ses signalements arrivent chez les enseignants.")}
     <div class="hint" style="line-height:1.6;">Installation : ouvrir le lien dans Chrome (Android) ou Safari (iPhone) puis « 📲 Installer l'application sur ce téléphone », ou Partager → Sur l'écran d'accueil (iPhone). Le message WhatsApp contient déjà ces explications. Les demandes d'accès sont visibles par la direction de l'école dans Paramètres → Demandes d'accès — pas depuis cette console.</div>
     <div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Fermer</button></div>`);
