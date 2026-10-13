@@ -152,6 +152,13 @@ async function renderConsole(){
     devEcoles = [];
     toast('Erreur de chargement : ' + e.message);
   }
+  // Santé des écoles : uniquement des comptes, jamais de données personnelles
+  try{
+    const { data, error } = await sb.rpc('sante_ecoles');
+    if(error) throw error;
+    devSante = {};
+    rowsToCamel(data || []).forEach(r => { devSante[r.ecoleId] = r; });
+  }catch(_e){ devSante = {}; }
   pageEcoles = 1;
   renderVueEcoles();
 }
@@ -168,6 +175,45 @@ function changerPageEcoles(page){
   renderVueEcoles();
 }
 
+let devSante = {};
+// Niveau d'usage d'une école, d'après ses chiffres
+function etatUsage(sa){
+  if(!sa) return { cls:'gray', lib:'—' };
+  if(sa.joursAppel7j >= 3 && sa.elevesRelies > 0) return { cls:'green', lib:'🟢 Utilise EcoMaZ' };
+  if(sa.joursAppel7j > 0 || sa.paiements30j > 0 || sa.publications > 0) return { cls:'amber', lib:'🟠 Démarre — à accompagner' };
+  return { cls:'red', lib:'🔴 N’utilise pas encore' };
+}
+function renderSanteEcoles(){
+  const lignes = devEcoles.map(e => ({ e, sa: devSante[e.id] })).filter(x => x.sa);
+  if(!lignes.length) return '';
+  const tot = k => lignes.reduce((t, x) => t + (x.sa[k] || 0), 0);
+  const pct = (a, b) => b ? Math.round(100 * a / b) + ' %' : '—';
+  return `<div class="panel">
+    <div class="panel-head"><div><h2>📈 Santé des écoles</h2><div class="sub">Usage réel de chaque école — uniquement des chiffres, aucune donnée personnelle</div></div></div>
+    <div class="cards">
+      <div class="card"><div class="num">${lignes.length}</div><div class="label">École(s) cliente(s)</div></div>
+      <div class="card"><div class="num">${tot('elevesActifs')}</div><div class="label">Élèves gérés</div></div>
+      <div class="card"><div class="num">${pct(tot('elevesRelies'), tot('elevesActifs'))}</div><div class="label">Élèves reliés à un parent</div></div>
+      <div class="card"><div class="num">${lignes.filter(x => etatUsage(x.sa).cls === 'green').length}</div><div class="label">École(s) utilisant EcoMaZ chaque semaine</div></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>École</th><th>État</th><th>Élèves</th><th>Parents reliés</th><th>Enseignants</th><th>Jours d’appel (7 j)</th><th>Paiements (30 j)</th><th>Publications</th><th>Téléphones notifiés</th><th>Dernière activité</th></tr></thead>
+      <tbody>${lignes.map(({e, sa}) => { const u = etatUsage(sa); return `<tr>
+        <td><strong>${escapeHtml(e.nomEcole)}</strong></td>
+        <td><span class="badge ${u.cls}">${u.lib}</span></td>
+        <td>${sa.elevesActifs}</td>
+        <td>${sa.elevesRelies} <span class="hint">(${pct(sa.elevesRelies, sa.elevesActifs)})</span></td>
+        <td>${sa.enseignants}</td>
+        <td>${sa.joursAppel7j} / 5</td>
+        <td>${sa.paiements30j}</td>
+        <td>${sa.publications}</td>
+        <td>${sa.telephonesAbonnes}</td>
+        <td>${sa.derniereActivite ? new Date(sa.derniereActivite + 'T12:00:00').toLocaleDateString('fr-FR') : '—'}</td>
+      </tr>`; }).join('')}</tbody>
+    </table></div>
+    <div class="hint" style="margin-top:8px;">🟢 appel fait au moins 3 jours sur 7 et parents reliés · 🟠 un début d’usage · 🔴 rien depuis une semaine : proposez une séance de prise en main.</div>
+  </div>`;
+}
 function renderVueEcoles(){
   const terme = filtreEcoles.trim().toLowerCase();
   const filtrees = terme
@@ -204,6 +250,7 @@ function renderVueEcoles(){
 
   $('#viewContainer').innerHTML = `
   <div class="view active">
+    ${renderSanteEcoles()}
     <div class="panel">
       <div class="panel-head">
         <div><h2>🏫 Écoles clientes</h2><div class="sub">${filtrees.length} école(s)${terme ? ` sur ${devEcoles.length} au total` : ''}</div></div>
