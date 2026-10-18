@@ -218,9 +218,10 @@ function renderSanteEcoles(){
       <div class="card"><div class="num">${lignes.filter(x => etatUsage(x.sa).cls === 'green').length}</div><div class="label">École(s) utilisant EcoMaZ chaque semaine</div></div>
       <div class="card"><div class="num">${tot('comptesEnseignants')}</div><div class="label">Enseignants inscrits dans leur application</div></div>
       <div class="card"><div class="num">${pct(tot('messagesLus30j'), tot('messagesParents30j'))}</div><div class="label">Messages lus par les parents (30 j)</div></div>
+      <div class="card"><div class="num">${tot('demandesAttente')}</div><div class="label">Demandes d’accès en attente (toutes écoles)</div></div>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>École</th><th>État</th><th>Élèves</th><th>Parents reliés</th><th>Enseignants (inscrits)</th><th>Jours d’appel (7 j)</th><th>Devoirs (30 j)</th><th>Paiements (30 j)</th><th>Messages lus (30 j)</th><th>Pré-inscriptions (30 j)</th><th>Publications</th><th>Téléphones notifiés</th><th>Dernière activité</th></tr></thead>
+      <thead><tr><th>École</th><th>État</th><th>Élèves</th><th>Parents reliés</th><th>Enseignants (inscrits)</th><th>Jours d’appel (7 j)</th><th>Devoirs (30 j)</th><th>Paiements (30 j)</th><th>Messages lus (30 j)</th><th>Pré-inscriptions (30 j)</th><th>Demandes d’accès en attente</th><th>Publications</th><th>Téléphones notifiés</th><th>Dernière activité</th></tr></thead>
       <tbody>${lignes.map(({e, sa}) => { const u = etatUsage(sa); return `<tr>
         <td><strong>${escapeHtml(e.nomEcole)}</strong></td>
         <td><span class="badge ${u.cls}">${u.lib}</span></td>
@@ -232,12 +233,13 @@ function renderSanteEcoles(){
         <td>${sa.paiements30j}</td>
         <td>${sa.messagesParents30j ? `${sa.messagesLus30j} / ${sa.messagesParents30j}` : '—'}</td>
         <td>${sa.preinscriptions30j ?? 0}</td>
+        <td>${sa.demandesAttente ? `<span class="badge ${(sa.plusAncienneDemandeJours || 0) >= 2 ? 'red' : 'amber'}">${sa.demandesAttente}${sa.plusAncienneDemandeJours ? ' · depuis ' + sa.plusAncienneDemandeJours + ' j' : ''}</span>` : '0'}</td>
         <td>${sa.publications}</td>
         <td>${sa.telephonesAbonnes}</td>
         <td>${sa.derniereActivite ? new Date(sa.derniereActivite + 'T12:00:00').toLocaleDateString('fr-FR') : '—'}</td>
       </tr>`; }).join('')}</tbody>
     </table></div>
-    <div class="hint" style="margin-top:8px;">🟢 appel fait au moins 3 jours sur 7 et parents reliés · 🟠 un début d’usage · 🔴 rien depuis une semaine : proposez une séance de prise en main. Enseignants « 0 inscrit » : l’appel et les devoirs ne peuvent pas démarrer.</div>
+    <div class="hint" style="margin-top:8px;">🟢 appel fait au moins 3 jours sur 7 et parents reliés · 🟠 un début d’usage · 🔴 rien depuis une semaine : proposez une séance de prise en main. Enseignants « 0 inscrit » : l’appel et les devoirs ne peuvent pas démarrer. Demandes en attente depuis 2 jours ou plus (rouge) : rappelez à l’école de les valider.</div>
   </div>`;
 }
 function renderVueEcoles(){
